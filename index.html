@@ -148,17 +148,7 @@
     </div>
 
     <div class="info">
-        💡 Введите первые буквы имени вашего BLE устройства (например: "LED", "ELK", "RGB")
-    </div>
-
-    <input type="text" id="devicePrefix" placeholder="Префикс имени (например: ELK)" value="ELK">
-
-    <div class="quick-filters">
-        <button class="quick-btn" onclick="setPrefix('ELK')">ELK</button>
-        <button class="quick-btn" onclick="setPrefix('LED')">LED</button>
-        <button class="quick-btn" onclick="setPrefix('RGB')">RGB</button>
-        <button class="quick-btn" onclick="setPrefix('BLE')">BLE</button>
-        <button class="quick-btn" onclick="setPrefix('Magic')">Magic</button>
+        💡 Устройство: ELK-BLEDOB
     </div>
 
     <div class="status-container">
@@ -194,11 +184,6 @@
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
     const bleWarning = document.getElementById('bleWarning');
-    const devicePrefix = document.getElementById('devicePrefix');
-
-    function setPrefix(prefix) {
-        devicePrefix.value = prefix;
-    }
 
     function log(msg) {
         const now = new Date();
@@ -215,22 +200,13 @@
 
     async function connect() {
         try {
-            const prefix = devicePrefix.value.trim();
+            log("Поиск устройства ELK-BLEDOB...");
             
-            if (!prefix) {
-                log("⚠️ Введите префикс имени устройства!");
-                return;
-            }
-            
-            log(`Поиск устройств с префиксом "${prefix}"...`);
-            
-            // Простой фильтр по одному префиксу - работает стабильно в Bluefy
-            const requestOptions = {
-                filters: [{ namePrefix: prefix }],
+            // Минимальный фильтр для Bluefy - только namePrefix
+            device = await navigator.bluetooth.requestDevice({
+                filters: [{ namePrefix: 'ELK' }],
                 optionalServices: [SERVICE_UUID]
-            };
-
-            device = await navigator.bluetooth.requestDevice(requestOptions);
+            });
 
             log(`Подключаюсь к "${device.name || 'Безымянное устройство'}"...`);
             
