@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED Control Fix</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: #e0e0e0; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .card { background: #1e1e1e; padding: 20px; border-radius: 15px; width: 100%; max-width: 350px; box-shadow: 0 10px 20px rgba(0,0,0,0.4); border: 1px solid #333; }
+        button { width: 100%; padding: 14px; margin: 8px 0; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-connect { background: #007aff; color: white; }
+        .btn-send { background: #34c759; color: white; opacity: 0.5; }
+        .btn-send.active { opacity: 1; }
+        #log { font-family: monospace; font-size: 11px; background: #000; padding: 10px; border-radius: 8px; height: 150px; overflow-y: auto; margin-top: 15px; color: #00ff41; border: 1px solid #222; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2 style="text-align: center; margin-top: 0;">LED Controller</h2>
+    
+    <button class="btn-connect" id="connectBtn">1. Найти устройство</button>
+    
+    <div style="margin: 15px 0; height: 1px; background: #333;"></div>
+    
+    <button class="btn-send" id="btn1" disabled>Код: ...0A...</button>
+    <button class="btn-send" id="btn2" disabled>Код: ...32...</button>
+    
+    <div id="log">Нажмите "Найти устройство"...</div>
+</div>
+
+<script>
+    // Настройки из ваших данных
+    const TARGET_SERVICE = 0xFFF0; 
+    const TARGET_CHAR = 'c6fe3e34-f194-4e8a-b1df-c7debbe0e061';
+
+    let bleChar = null;
+
+    function log(msg) {
+        const l = document.getElementById('log');
+        l.innerHTML += `> ${msg}<br>`;
+        l.scrollTop = l.scrollHeight;
+    }
+
+    document.getElementById('connectBtn').onclick = async () => {
+        try {
+            log("Запуск сканера (без фильтров)...");
+            // acceptAllDevices позволяет увидеть всё, 
+            // но мы ОБЯЗАТЕЛЬНО перечисляем нужные сервисы в optionalServices
+            const device = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: [TARGET_SERVICE]
+            });
+
+            log(`Подключение к ${device.name || 'устройству'}...`);
+            const server = await device.gatt.connect();
+
+            log("Поиск сервиса FFF0...");
+            const service = await server.getPrimaryService(TARGET_SERVICE);
+
+            log("Поиск характеристики...");
+            // Пробуем ваш длинный ID
+            try {
+                bleChar = await service.getCharacteristic(TARGET_CHAR.toLowerCase());
+                log("Характеристика найдена!");
+            } catch (e) {
+                log("Длинный ID не подошел, пробую стандартный FFF3...");
+                bleChar = await service.getCharacteristic(0xFFF3);
+            }
+
+            log("Связь установлена. Можно жечь!");
+            document.getElementById('btn1').disabled = false;
+            document.getElementById('btn1').classList.add('active');
+            document.getElementById('btn2').disabled = false;
+            document.getElementById('btn2').classList.add('active');
+            
+        } catch (error) {
+            log("ОШИБКА: " + error);
+            console.error(error);
+        }
+    };
+
+    async function send(hex) {
+        if (!bleChar) return;
+        try {
+            const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+            await bleChar.writeValue(bytes);
+            log("Успешно отправлено: " + hex.substring(0, 8) + "...");
+        } catch (e) {
+            log("Ошибка при отправке: " + e);
+        }
+    }
+
+    document.getElementById('btn1').onclick = () => send("7e00010a00000000ef");
+    document.getElementById('btn2').onclick = () => send("7e00013200000000ef");
+</script>
+</body>
+</html>
