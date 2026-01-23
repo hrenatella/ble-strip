@@ -151,15 +151,14 @@
         💡 Введите первые буквы имени вашего BLE устройства (например: "LED", "ELK", "RGB")
     </div>
 
-    <input type="text" id="devicePrefix" placeholder="Префикс имени (например: LED)" value="LED">
+    <input type="text" id="devicePrefix" placeholder="Префикс имени (например: ELK)" value="ELK">
 
     <div class="quick-filters">
-        <button class="quick-btn" onclick="setPrefix('LED')">LED</button>
         <button class="quick-btn" onclick="setPrefix('ELK')">ELK</button>
+        <button class="quick-btn" onclick="setPrefix('LED')">LED</button>
         <button class="quick-btn" onclick="setPrefix('RGB')">RGB</button>
         <button class="quick-btn" onclick="setPrefix('BLE')">BLE</button>
         <button class="quick-btn" onclick="setPrefix('Magic')">Magic</button>
-        <button class="quick-btn" onclick="setPrefix('')">Любое</button>
     </div>
 
     <div class="status-container">
@@ -217,32 +216,19 @@
     async function connect() {
         try {
             const prefix = devicePrefix.value.trim();
-            log(`Поиск устройств с префиксом "${prefix || 'любое'}"...`);
             
-            // Создаём фильтры в зависимости от введённого префикса
-            let requestOptions;
-            
-            if (prefix) {
-                requestOptions = {
-                    filters: [{ namePrefix: prefix }],
-                    optionalServices: [SERVICE_UUID]
-                };
-            } else {
-                // Попытка показать все устройства через множественные фильтры
-                requestOptions = {
-                    filters: [
-                        { services: [SERVICE_UUID] },
-                        { namePrefix: 'LED' },
-                        { namePrefix: 'BLE' },
-                        { namePrefix: 'RGB' },
-                        { namePrefix: 'ELK' },
-                        { namePrefix: 'Magic' },
-                        { namePrefix: 'ihoment' },
-                        { namePrefix: 'Triones' }
-                    ],
-                    optionalServices: [SERVICE_UUID]
-                };
+            if (!prefix) {
+                log("⚠️ Введите префикс имени устройства!");
+                return;
             }
+            
+            log(`Поиск устройств с префиксом "${prefix}"...`);
+            
+            // Простой фильтр по одному префиксу - работает стабильно в Bluefy
+            const requestOptions = {
+                filters: [{ namePrefix: prefix }],
+                optionalServices: [SERVICE_UUID]
+            };
 
             device = await navigator.bluetooth.requestDevice(requestOptions);
 
