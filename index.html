@@ -57,6 +57,17 @@
 
         .status-dot.active { background: var(--success); box-shadow: 0 0 10px var(--success); }
 
+        input {
+            width: calc(100% - 24px);
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #444;
+            border-radius: 10px;
+            background: #2a2a2a;
+            color: white;
+            font-size: 14px;
+        }
+
         button {
             width: 100%;
             padding: 16px;
@@ -74,6 +85,25 @@
         .btn-action { background: #333; color: white; opacity: 0.5; }
         .btn-action.enabled { opacity: 1; background: #444; }
         .btn-action.enabled:active { transform: scale(0.96); background: #555; }
+
+        .quick-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .quick-btn {
+            padding: 8px 14px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: #aaa;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .quick-btn:active { background: #333; }
 
         #log {
             margin-top: 20px;
@@ -97,6 +127,15 @@
             margin-bottom: 15px;
             display: none;
         }
+
+        .info {
+            background: #004;
+            color: #6cf;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
@@ -106,6 +145,21 @@
 
     <div id="bleWarning" class="warning">
         ⚠️ Bluetooth не поддерживается. На iPhone используйте браузер <b>Bluefy</b> и HTTPS соединение.
+    </div>
+
+    <div class="info">
+        💡 Введите первые буквы имени вашего BLE устройства (например: "LED", "ELK", "RGB")
+    </div>
+
+    <input type="text" id="devicePrefix" placeholder="Префикс имени (например: LED)" value="LED">
+
+    <div class="quick-filters">
+        <button class="quick-btn" onclick="setPrefix('LED')">LED</button>
+        <button class="quick-btn" onclick="setPrefix('ELK')">ELK</button>
+        <button class="quick-btn" onclick="setPrefix('RGB')">RGB</button>
+        <button class="quick-btn" onclick="setPrefix('BLE')">BLE</button>
+        <button class="quick-btn" onclick="setPrefix('Magic')">Magic</button>
+        <button class="quick-btn" onclick="setPrefix('')">Любое</button>
     </div>
 
     <div class="status-container">
@@ -141,6 +195,11 @@
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
     const bleWarning = document.getElementById('bleWarning');
+    const devicePrefix = document.getElementById('devicePrefix');
+
+    function setPrefix(prefix) {
+        devicePrefix.value = prefix;
+    }
 
     function log(msg) {
         const now = new Date();
@@ -157,17 +216,35 @@
 
     async function connect() {
         try {
-            log("Запрос Bluetooth устройства...");
+            const prefix = devicePrefix.value.trim();
+            log(`Поиск устройств с префиксом "${prefix || 'любое'}"...`);
             
-            // Фильтр для Bluefy и Chrome
-            // Используем optionalServices, чтобы браузер разрешил доступ к FFF0
-            device = await navigator.bluetooth.requestDevice({
-                filters: [
-                    { services: [SERVICE_UUID] },
-                    { namePrefix: 'ELK' }
-                ],
-                optionalServices: [SERVICE_UUID]
-            });
+            // Создаём фильтры в зависимости от введённого префикса
+            let requestOptions;
+            
+            if (prefix) {
+                requestOptions = {
+                    filters: [{ namePrefix: prefix }],
+                    optionalServices: [SERVICE_UUID]
+                };
+            } else {
+                // Попытка показать все устройства через множественные фильтры
+                requestOptions = {
+                    filters: [
+                        { services: [SERVICE_UUID] },
+                        { namePrefix: 'LED' },
+                        { namePrefix: 'BLE' },
+                        { namePrefix: 'RGB' },
+                        { namePrefix: 'ELK' },
+                        { namePrefix: 'Magic' },
+                        { namePrefix: 'ihoment' },
+                        { namePrefix: 'Triones' }
+                    ],
+                    optionalServices: [SERVICE_UUID]
+                };
+            }
+
+            device = await navigator.bluetooth.requestDevice(requestOptions);
 
             log(`Подключаюсь к "${device.name || 'Безымянное устройство'}"...`);
             
@@ -181,7 +258,6 @@
 
             log("Поиск характеристики...");
             try {
-                // Пытаемся найти по вашему длинному UUID
                 characteristic = await service.getCharacteristic(CHAR_UUID_MAIN.toLowerCase());
                 log("Характеристика найдена (Основная).");
             } catch (e) {
@@ -215,7 +291,6 @@
         }
 
         try {
-            // Конвертация HEX строки в ArrayBuffer
             const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
             await characteristic.writeValue(bytes);
             log("Отправлено: " + hex);
