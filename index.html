@@ -3,96 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LED Control Fix</title>
+    <title>LED Controller Pro</title>
     <style>
-        body { font-family: sans-serif; background: #121212; color: #e0e0e0; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .card { background: #1e1e1e; padding: 20px; border-radius: 15px; width: 100%; max-width: 350px; box-shadow: 0 10px 20px rgba(0,0,0,0.4); border: 1px solid #333; }
-        button { width: 100%; padding: 14px; margin: 8px 0; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.3s; }
-        .btn-connect { background: #007aff; color: white; }
-        .btn-send { background: #34c759; color: white; opacity: 0.5; }
-        .btn-send.active { opacity: 1; }
-        #log { font-family: monospace; font-size: 11px; background: #000; padding: 10px; border-radius: 8px; height: 150px; overflow-y: auto; margin-top: 15px; color: #00ff41; border: 1px solid #222; }
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --primary: #007aff;
+            --success: #34c759;
+            --error: #ff3b30;
+            --text: #ffffff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 24px;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+        }
+
+        h2 { text-align: center; margin-top: 0; font-weight: 600; }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--error);
+            margin-right: 8px;
+            transition: background 0.3s;
+        }
+
+        .status-dot.active { background: var(--success); box-shadow: 0 0 10px var(--success); }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-connect { background: var(--primary); color: white; }
+        .btn-action { background: #333; color: white; opacity: 0.5; }
+        .btn-action.enabled { opacity: 1; background: #444; }
+        .btn-action.enabled:active { transform: scale(0.96); background: #555; }
+
+        #log {
+            margin-top: 20px;
+            background: #000;
+            color: #00ff41;
+            padding: 12px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            height: 120px;
+            overflow-y: auto;
+            border: 1px solid #222;
+        }
+
+        .warning {
+            background: #410;
+            color: #fb0;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            margin-bottom: 15px;
+            display: none;
+        }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2 style="text-align: center; margin-top: 0;">LED Controller</h2>
+    <h2>LED Control</h2>
+
+    <div id="bleWarning" class="warning">
+        ⚠️ Bluetooth не поддерживается. На iPhone используйте браузер <b>Bluefy</b> и HTTPS соединение.
+    </div>
+
+    <div class="status-container">
+        <div id="statusDot" class="status-dot"></div>
+        <span id="statusText">Устройство не найдено</span>
+    </div>
+
+    <button class="btn-connect" id="connectBtn">Найти и подключить</button>
     
-    <button class="btn-connect" id="connectBtn">1. Найти устройство</button>
-    
-    <div style="margin: 15px 0; height: 1px; background: #333;"></div>
-    
-    <button class="btn-send" id="btn1" disabled>Код: ...0A...</button>
-    <button class="btn-send" id="btn2" disabled>Код: ...32...</button>
-    
-    <div id="log">Нажмите "Найти устройство"...</div>
+    <div style="margin: 15px 0; border-top: 1px solid #333;"></div>
+
+    <button class="btn-action" id="cmd1" disabled>Включить (Код 1)</button>
+    <button class="btn-action" id="cmd2" disabled>Выключить (Код 2)</button>
+
+    <div id="log">Ожидание действий...</div>
 </div>
 
 <script>
-    // Настройки из ваших данных
-    const TARGET_SERVICE = 0xFFF0; 
-    const TARGET_CHAR = 'c6fe3e34-f194-4e8a-b1df-c7debbe0e061';
+    // Настройки UUID
+    const SERVICE_UUID = 0xFFF0;
+    const CHAR_UUID_MAIN = 'c6fe3e34-f194-4e8a-b1df-c7debbe0e061';
+    const CHAR_UUID_FALLBACK = 0xFFF3;
 
-    let bleChar = null;
+    // Команды
+    const HEX_1 = "7e00010a00000000ef";
+    const HEX_2 = "7e00013200000000ef";
+
+    let device = null;
+    let characteristic = null;
+
+    const logElement = document.getElementById('log');
+    const connectBtn = document.getElementById('connectBtn');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const bleWarning = document.getElementById('bleWarning');
 
     function log(msg) {
-        const l = document.getElementById('log');
-        l.innerHTML += `> ${msg}<br>`;
-        l.scrollTop = l.scrollHeight;
+        const now = new Date();
+        const time = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0') + ":" + now.getSeconds().toString().padStart(2, '0');
+        logElement.innerHTML += `[${time}] ${msg}<br>`;
+        logElement.scrollTop = logElement.scrollHeight;
     }
 
-    document.getElementById('connectBtn').onclick = async () => {
+    // Проверка поддержки Bluetooth при загрузке
+    if (!navigator.bluetooth) {
+        bleWarning.style.display = 'block';
+        log("Критическая ошибка: navigator.bluetooth не найден.");
+    }
+
+    async function connect() {
         try {
-            log("Запуск сканера (без фильтров)...");
-            // acceptAllDevices позволяет увидеть всё, 
-            // но мы ОБЯЗАТЕЛЬНО перечисляем нужные сервисы в optionalServices
-            const device = await navigator.bluetooth.requestDevice({
+            log("Запрос Bluetooth устройства...");
+            
+            // Фильтр для Bluefy и Chrome
+            // Используем optionalServices, чтобы браузер разрешил доступ к FFF0
+            device = await navigator.bluetooth.requestDevice({
                 acceptAllDevices: true,
-                optionalServices: [TARGET_SERVICE]
+                optionalServices: [SERVICE_UUID]
             });
 
-            log(`Подключение к ${device.name || 'устройству'}...`);
+            log(`Подключаюсь к "${device.name || 'Безымянное устройство'}"...`);
+            
+            device.addEventListener('gattserverdisconnected', onDisconnected);
+            
             const server = await device.gatt.connect();
+            log("GATT сервер подключен.");
 
             log("Поиск сервиса FFF0...");
-            const service = await server.getPrimaryService(TARGET_SERVICE);
+            const service = await server.getPrimaryService(SERVICE_UUID);
 
             log("Поиск характеристики...");
-            // Пробуем ваш длинный ID
             try {
-                bleChar = await service.getCharacteristic(TARGET_CHAR.toLowerCase());
-                log("Характеристика найдена!");
+                // Пытаемся найти по вашему длинному UUID
+                characteristic = await service.getCharacteristic(CHAR_UUID_MAIN.toLowerCase());
+                log("Характеристика найдена (Основная).");
             } catch (e) {
-                log("Длинный ID не подошел, пробую стандартный FFF3...");
-                bleChar = await service.getCharacteristic(0xFFF3);
+                log("Длинный ID не найден, пробуем FFF3...");
+                characteristic = await service.getCharacteristic(CHAR_UUID_FALLBACK);
+                log("Характеристика найдена (Запасная).");
             }
 
-            log("Связь установлена. Можно жечь!");
-            document.getElementById('btn1').disabled = false;
-            document.getElementById('btn1').classList.add('active');
-            document.getElementById('btn2').disabled = false;
-            document.getElementById('btn2').classList.add('active');
+            // Успех
+            statusDot.classList.add('active');
+            statusText.innerText = "Подключено: " + (device.name || "LED");
+            connectBtn.innerText = "Переподключить";
             
-        } catch (error) {
-            log("ОШИБКА: " + error);
-            console.error(error);
-        }
-    };
+            document.getElementById('cmd1').disabled = false;
+            document.getElementById('cmd1').classList.add('enabled');
+            document.getElementById('cmd2').disabled = false;
+            document.getElementById('cmd2').classList.add('enabled');
 
-    async function send(hex) {
-        if (!bleChar) return;
-        try {
-            const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(b => parseInt(b, 16)));
-            await bleChar.writeValue(bytes);
-            log("Успешно отправлено: " + hex.substring(0, 8) + "...");
-        } catch (e) {
-            log("Ошибка при отправке: " + e);
+            log("Система готова к отправке команд.");
+
+        } catch (error) {
+            log("Ошибка: " + error.message);
+            console.error(error);
         }
     }
 
-    document.getElementById('btn1').onclick = () => send("7e00010a00000000ef");
-    document.getElementById('btn2').onclick = () => send("7e00013200000000ef");
+    async function sendHex(hex) {
+        if (!characteristic) {
+            log("Ошибка: нет связи с устройством.");
+            return;
+        }
+
+        try {
+            // Конвертация HEX строки в ArrayBuffer
+            const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+            await characteristic.writeValue(bytes);
+            log("Отправлено: " + hex);
+        } catch (error) {
+            log("Ошибка отправки: " + error.message);
+        }
+    }
+
+    function onDisconnected() {
+        log("Устройство отключено.");
+        statusDot.classList.remove('active');
+        statusText.innerText = "Связь потеряна";
+        document.getElementById('cmd1').disabled = true;
+        document.getElementById('cmd1').classList.remove('enabled');
+        document.getElementById('cmd2').disabled = true;
+        document.getElementById('cmd2').classList.remove('enabled');
+    }
+
+    connectBtn.onclick = connect;
+    document.getElementById('cmd1').onclick = () => sendHex(HEX_1);
+    document.getElementById('cmd2').onclick = () => sendHex(HEX_2);
+
 </script>
 </body>
 </html>
