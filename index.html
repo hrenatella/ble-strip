@@ -162,7 +162,11 @@
             // Фильтр для Bluefy и Chrome
             // Используем optionalServices, чтобы браузер разрешил доступ к FFF0
             device = await navigator.bluetooth.requestDevice({
-                //filters: [{ services: [SERVICE_UUID] }]
+                filters: [
+                    { services: [SERVICE_UUID] },
+                    { namePrefix: 'ELK' }
+                ],
+                optionalServices: [SERVICE_UUID]
             });
 
             log(`Подключаюсь к "${device.name || 'Безымянное устройство'}"...`);
