@@ -327,8 +327,6 @@
         <div id="effectMode" class="card hidden">
             <div class="card-title">Эффекты</div>
             <div class="effects-grid">
-                <button class="effect-btn" data-effect="fire" style="background: linear-gradient(135deg, #ff4500, #ffa500); color: white; font-weight: bold;">🔥 Огонь</button>
-                <button class="effect-btn" data-effect="0x96">Blink Red</button>
                 <button class="effect-btn" data-effect="0x87">Jump RGB</button>
                 <button class="effect-btn" data-effect="0x88">Jump All</button>
                 <button class="effect-btn" data-effect="0x89">Gradient RGB</button>
@@ -367,7 +365,6 @@
     let characteristic = null;
     let isPowerOn = false;
     let currentMode = 'rgb';
-    let fireInterval = null;
 
     const $ = id => document.getElementById(id);
     const log = msg => {
@@ -517,43 +514,8 @@
     document.querySelectorAll('.effect-btn').forEach(btn => {
         btn.onclick = () => {
             const effect = btn.dataset.effect;
-            
-            // Остановить кастомный эффект огня, если он был запущен
-            if (fireInterval) {
-                clearInterval(fireInterval);
-                fireInterval = null;
-            }
-            
-            if (effect === 'fire') {
-                // Кастомный эффект огня
-                log("🔥 Запущен эффект огня");
-                
-                const fireColors = [
-                    { r: 255, g: 40, b: 0 },   // Красный
-                    { r: 255, g: 80, b: 0 },   // Красно-оранжевый
-                    { r: 255, g: 120, b: 0 },  // Оранжевый
-                    { r: 255, g: 160, b: 0 },  // Жёлто-оранжевый
-                    { r: 255, g: 200, b: 0 },  // Жёлтый
-                ];
-                
-                fireInterval = setInterval(() => {
-                    // Случайный цвет из палитры
-                    const color = fireColors[Math.floor(Math.random() * fireColors.length)];
-                    // Случайная яркость (80-100%)
-                    const brightness = Math.floor(Math.random() * 21) + 80;
-                    
-                    const rHex = Math.floor(color.r * brightness / 100).toString(16).padStart(2, '0');
-                    const gHex = Math.floor(color.g * brightness / 100).toString(16).padStart(2, '0');
-                    const bHex = Math.floor(color.b * brightness / 100).toString(16).padStart(2, '0');
-                    
-                    send(`7e000503${rHex}${gHex}${bHex}00ef`);
-                }, 100 + Math.random() * 100); // Случайная задержка 100-200ms
-                
-            } else {
-                // Стандартный эффект
-                const effectHex = parseInt(effect).toString(16).padStart(2, '0');
-                send(`7e0003${effectHex}03000000ef`);
-            }
+            const effectHex = parseInt(effect).toString(16).padStart(2, '0');
+            send(`7e0003${effectHex}03000000ef`);
         };
     });
 
