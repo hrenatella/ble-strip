@@ -3,277 +3,531 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LED Controller Pro</title>
+    <title>RGB LED Controller</title>
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
         :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --primary: #007aff;
-            --success: #34c759;
-            --error: #ff3b30;
+            --bg: #0a0a0a;
+            --card: #1a1a1a;
+            --card-hover: #222;
+            --primary: #00a8ff;
+            --success: #00d68f;
+            --error: #ff3838;
             --text: #ffffff;
+            --text-dim: #888;
+            --border: #333;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
             color: var(--text);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+            min-height: 100vh;
             padding: 20px;
-            margin: 0;
         }
 
-        .card {
-            background: var(--card-bg);
-            padding: 24px;
-            border-radius: 20px;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            border: 1px solid #333;
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
         }
 
-        h2 { text-align: center; margin-top: 0; font-weight: 600; }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
 
-        .status-container {
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #00a8ff, #00d68f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status {
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 20px;
+            gap: 10px;
             font-size: 14px;
-            color: #aaa;
+            color: var(--text-dim);
         }
 
-        .status-dot {
-            width: 10px;
-            height: 10px;
+        .dot {
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: var(--error);
-            margin-right: 8px;
-            transition: background 0.3s;
+            transition: all 0.3s;
         }
 
-        .status-dot.active { background: var(--success); box-shadow: 0 0 10px var(--success); }
+        .dot.connected {
+            background: var(--success);
+            box-shadow: 0 0 15px var(--success);
+        }
 
-        input {
-            width: calc(100% - 24px);
-            padding: 12px;
-            margin: 8px 0;
-            border: 1px solid #444;
-            border-radius: 10px;
-            background: #2a2a2a;
-            color: white;
-            font-size: 14px;
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text);
         }
 
         button {
             width: 100%;
             padding: 16px;
-            margin: 8px 0;
             border: none;
             border-radius: 12px;
             font-size: 16px;
-            font-weight: bold;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
             -webkit-tap-highlight-color: transparent;
         }
 
-        .btn-connect { background: var(--primary); color: white; }
-        .btn-action { background: #333; color: white; opacity: 0.5; }
-        .btn-action.enabled { opacity: 1; background: #444; }
-        .btn-action.enabled:active { transform: scale(0.96); background: #555; }
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
 
-        .quick-filters {
+        .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+
+        .btn-power {
+            background: var(--card-hover);
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .btn-power.on {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-power:active { transform: scale(0.98); }
+
+        .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .mode-btn {
+            padding: 14px;
+            background: var(--card-hover);
+            border: 2px solid transparent;
+            border-radius: 10px;
+            color: var(--text-dim);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .mode-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .mode-btn:active { transform: scale(0.96); }
+
+        .slider-container {
+            margin-bottom: 20px;
+        }
+
+        .slider-label {
             display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin: 10px 0;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-dim);
         }
 
-        .quick-btn {
-            padding: 8px 14px;
-            background: #2a2a2a;
-            border: 1px solid #444;
-            border-radius: 8px;
-            color: #aaa;
-            font-size: 12px;
+        .slider-value {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--card-hover);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
             cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,168,255,0.4);
         }
 
-        .quick-btn:active { background: #333; }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary);
+            cursor: pointer;
+            border: none;
+        }
+
+        .color-input {
+            width: 100%;
+            height: 60px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 16px;
+        }
+
+        .effects-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+        }
+
+        .effect-btn {
+            padding: 12px 8px;
+            background: var(--card-hover);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-dim);
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .effect-btn:active {
+            transform: scale(0.95);
+            background: var(--primary);
+            color: white;
+        }
+
+        .hidden { display: none; }
 
         #log {
-            margin-top: 20px;
             background: #000;
-            color: #00ff41;
+            color: #0f0;
             padding: 12px;
             border-radius: 10px;
             font-family: 'Courier New', monospace;
             font-size: 11px;
-            height: 120px;
+            max-height: 150px;
             overflow-y: auto;
             border: 1px solid #222;
         }
 
         .warning {
-            background: #410;
-            color: #fb0;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            margin-bottom: 15px;
-            display: none;
-        }
-
-        .info {
-            background: #004;
-            color: #6cf;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 12px;
-            margin-bottom: 15px;
+            background: rgba(255, 56, 56, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 16px;
         }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>LED Control</h2>
-
-    <div id="bleWarning" class="warning">
-        ⚠️ Bluetooth не поддерживается. На iPhone используйте браузер <b>Bluefy</b> и HTTPS соединение.
+<div class="container">
+    <div class="header">
+        <h1>RGB LED Controller</h1>
+        <div class="status">
+            <div id="statusDot" class="dot"></div>
+            <span id="statusText">Не подключено</span>
+        </div>
     </div>
 
-    <div class="info">
-        💡 Устройство: ELK-BLEDOB
+    <div id="bleWarning" class="warning hidden">
+        ⚠️ Bluetooth недоступен. Используйте Bluefy на iOS с HTTPS.
     </div>
 
-    <div class="status-container">
-        <div id="statusDot" class="status-dot"></div>
-        <span id="statusText">Устройство не найдено</span>
+    <div class="card">
+        <button id="connectBtn" class="btn-primary">Подключиться к ELK-BLEDOB</button>
     </div>
 
-    <button class="btn-connect" id="connectBtn">Найти и подключить</button>
-    
-    <div style="margin: 15px 0; border-top: 1px solid #333;"></div>
+    <div id="controls" class="hidden">
+        <!-- Power -->
+        <div class="card">
+            <button id="powerBtn" class="btn-power">Включить</button>
+        </div>
 
-    <button class="btn-action" id="cmd1" disabled>Включить (Код 1)</button>
-    <button class="btn-action" id="cmd2" disabled>Выключить (Код 2)</button>
+        <!-- Modes -->
+        <div class="card">
+            <div class="card-title">Режимы</div>
+            <div class="mode-grid">
+                <button class="mode-btn" data-mode="rgb">RGB</button>
+                <button class="mode-btn" data-mode="grayscale">Белый</button>
+                <button class="mode-btn" data-mode="temperature">Температура</button>
+                <button class="mode-btn" data-mode="effect">Эффекты</button>
+            </div>
+        </div>
 
-    <div id="log">Ожидание действий...</div>
+        <!-- RGB Mode -->
+        <div id="rgbMode" class="card hidden">
+            <div class="card-title">RGB Цвет</div>
+            <input type="color" id="colorPicker" class="color-input" value="#ff0000">
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Яркость</span>
+                    <span class="slider-value"><span id="brightnessVal">100</span>%</span>
+                </div>
+                <input type="range" id="brightness" min="0" max="100" value="100">
+            </div>
+        </div>
+
+        <!-- Grayscale Mode -->
+        <div id="grayscaleMode" class="card hidden">
+            <div class="card-title">Белый свет</div>
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Интенсивность</span>
+                    <span class="slider-value"><span id="grayscaleVal">100</span>%</span>
+                </div>
+                <input type="range" id="grayscale" min="0" max="100" value="100">
+            </div>
+        </div>
+
+        <!-- Temperature Mode -->
+        <div id="temperatureMode" class="card hidden">
+            <div class="card-title">Температура света</div>
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Холодный</span>
+                    <span>Тёплый</span>
+                </div>
+                <input type="range" id="temperature" min="128" max="138" value="133">
+            </div>
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Яркость</span>
+                    <span class="slider-value"><span id="tempBrightnessVal">100</span>%</span>
+                </div>
+                <input type="range" id="tempBrightness" min="0" max="100" value="100">
+            </div>
+        </div>
+
+        <!-- Effect Mode -->
+        <div id="effectMode" class="card hidden">
+            <div class="card-title">Эффекты</div>
+            <div class="effects-grid">
+                <button class="effect-btn" data-effect="0x87">Jump RGB</button>
+                <button class="effect-btn" data-effect="0x88">Jump All</button>
+                <button class="effect-btn" data-effect="0x89">Gradient RGB</button>
+                <button class="effect-btn" data-effect="0x8a">Gradient All</button>
+                <button class="effect-btn" data-effect="0x95">Blink All</button>
+                <button class="effect-btn" data-effect="0x80">Red</button>
+                <button class="effect-btn" data-effect="0x81">Green</button>
+                <button class="effect-btn" data-effect="0x82">Blue</button>
+                <button class="effect-btn" data-effect="0x83">Yellow</button>
+                <button class="effect-btn" data-effect="0x84">Cyan</button>
+                <button class="effect-btn" data-effect="0x85">Magenta</button>
+                <button class="effect-btn" data-effect="0x86">White</button>
+            </div>
+            <div class="slider-container" style="margin-top: 16px;">
+                <div class="slider-label">
+                    <span>Скорость</span>
+                    <span class="slider-value"><span id="speedVal">50</span>%</span>
+                </div>
+                <input type="range" id="speed" min="0" max="100" value="50">
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Лог</div>
+        <div id="log">Ожидание подключения...</div>
+    </div>
 </div>
 
 <script>
-    // Настройки UUID
     const SERVICE_UUID = 0xFFF0;
     const CHAR_UUID_MAIN = 'c6fe3e34-f194-4e8a-b1df-c7debbe0e061';
     const CHAR_UUID_FALLBACK = 0xFFF3;
 
-    // Команды
-    const HEX_1 = "7e00010a00000000ef";
-    const HEX_2 = "7e00013200000000ef";
-
     let device = null;
     let characteristic = null;
+    let isPowerOn = false;
+    let currentMode = 'rgb';
 
-    const logElement = document.getElementById('log');
-    const connectBtn = document.getElementById('connectBtn');
-    const statusDot = document.getElementById('statusDot');
-    const statusText = document.getElementById('statusText');
-    const bleWarning = document.getElementById('bleWarning');
+    const $ = id => document.getElementById(id);
+    const log = msg => {
+        const time = new Date().toLocaleTimeString('ru-RU');
+        $('log').innerHTML += `[${time}] ${msg}<br>`;
+        $('log').scrollTop = $('log').scrollHeight;
+    };
 
-    function log(msg) {
-        const now = new Date();
-        const time = now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0') + ":" + now.getSeconds().toString().padStart(2, '0');
-        logElement.innerHTML += `[${time}] ${msg}<br>`;
-        logElement.scrollTop = logElement.scrollHeight;
-    }
-
-    // Проверка поддержки Bluetooth при загрузке
     if (!navigator.bluetooth) {
-        bleWarning.style.display = 'block';
-        log("Критическая ошибка: navigator.bluetooth не найден.");
+        $('bleWarning').classList.remove('hidden');
+        log("⚠️ Bluetooth API недоступен");
     }
 
-    async function connect() {
+    // Подключение
+    $('connectBtn').onclick = async () => {
         try {
-            log("Поиск устройства ELK-BLEDOB...");
-            
-            // Только namePrefix, БЕЗ optionalServices - иначе устройство не видно
+            log("Поиск ELK-BLEDOB...");
             device = await navigator.bluetooth.requestDevice({
                 filters: [{ namePrefix: 'ELK' }]
             });
 
-            log(`Подключаюсь к "${device.name || 'Безымянное устройство'}"...`);
-            
-            device.addEventListener('gattserverdisconnected', onDisconnected);
-            
-            const server = await device.gatt.connect();
-            log("GATT сервер подключен.");
+            log(`Подключение к "${device.name}"...`);
+            device.addEventListener('gattserverdisconnected', onDisconnect);
 
-            log("Поиск сервиса FFF0...");
+            const server = await device.gatt.connect();
             const service = await server.getPrimaryService(SERVICE_UUID);
 
-            log("Поиск характеристики...");
             try {
                 characteristic = await service.getCharacteristic(CHAR_UUID_MAIN.toLowerCase());
-                log("Характеристика найдена (Основная).");
-            } catch (e) {
-                log("Длинный ID не найден, пробуем FFF3...");
+            } catch {
                 characteristic = await service.getCharacteristic(CHAR_UUID_FALLBACK);
-                log("Характеристика найдена (Запасная).");
             }
 
-            // Успех
-            statusDot.classList.add('active');
-            statusText.innerText = "Подключено: " + (device.name || "LED");
-            connectBtn.innerText = "Переподключить";
-            
-            document.getElementById('cmd1').disabled = false;
-            document.getElementById('cmd1').classList.add('enabled');
-            document.getElementById('cmd2').disabled = false;
-            document.getElementById('cmd2').classList.add('enabled');
+            $('statusDot').classList.add('connected');
+            $('statusText').innerText = `Подключено: ${device.name}`;
+            $('connectBtn').innerText = 'Переподключить';
+            $('controls').classList.remove('hidden');
+            log("✓ Готово к управлению");
 
-            log("Система готова к отправке команд.");
-
-        } catch (error) {
-            log("Ошибка: " + error.message);
-            console.error(error);
+        } catch (err) {
+            log(`✗ Ошибка: ${err.message}`);
         }
+    };
+
+    function onDisconnect() {
+        log("✗ Устройство отключено");
+        $('statusDot').classList.remove('connected');
+        $('statusText').innerText = 'Не подключено';
+        $('controls').classList.add('hidden');
     }
 
-    async function sendHex(hex) {
-        if (!characteristic) {
-            log("Ошибка: нет связи с устройством.");
-            return;
-        }
-
+    // Отправка команды
+    async function send(hex) {
+        if (!characteristic) return log("✗ Нет соединения");
         try {
-            const bytes = new Uint8Array(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+            const bytes = new Uint8Array(hex.match(/.{2}/g).map(b => parseInt(b, 16)));
             await characteristic.writeValue(bytes);
-            log("Отправлено: " + hex);
-        } catch (error) {
-            log("Ошибка отправки: " + error.message);
+            log(`→ ${hex}`);
+        } catch (err) {
+            log(`✗ ${err.message}`);
         }
     }
 
-    function onDisconnected() {
-        log("Устройство отключено.");
-        statusDot.classList.remove('active');
-        statusText.innerText = "Связь потеряна";
-        document.getElementById('cmd1').disabled = true;
-        document.getElementById('cmd1').classList.remove('enabled');
-        document.getElementById('cmd2').disabled = true;
-        document.getElementById('cmd2').classList.remove('enabled');
+    // Power
+    $('powerBtn').onclick = () => {
+        isPowerOn = !isPowerOn;
+        send(isPowerOn ? '7e00040100000000ef' : '7e00040000000000ef');
+        $('powerBtn').textContent = isPowerOn ? 'Выключить' : 'Включить';
+        $('powerBtn').classList.toggle('on', isPowerOn);
+    };
+
+    // Режимы
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const mode = btn.dataset.mode;
+            currentMode = mode;
+
+            ['rgbMode', 'grayscaleMode', 'temperatureMode', 'effectMode'].forEach(id => {
+                $(id).classList.add('hidden');
+            });
+
+            if (mode === 'rgb') {
+                $('rgbMode').classList.remove('hidden');
+                updateRGB();
+            } else if (mode === 'grayscale') {
+                $('grayscaleMode').classList.remove('hidden');
+                send('7e00030001000000ef');
+                updateGrayscale();
+            } else if (mode === 'temperature') {
+                $('temperatureMode').classList.remove('hidden');
+                updateTemperature();
+            } else if (mode === 'effect') {
+                $('effectMode').classList.remove('hidden');
+            }
+        };
+    });
+
+    // RGB Mode
+    function updateRGB() {
+        const color = $('colorPicker').value;
+        const r = parseInt(color.substr(1, 2), 16);
+        const g = parseInt(color.substr(3, 2), 16);
+        const b = parseInt(color.substr(5, 2), 16);
+        
+        const rHex = r.toString(16).padStart(2, '0');
+        const gHex = g.toString(16).padStart(2, '0');
+        const bHex = b.toString(16).padStart(2, '0');
+        
+        send(`7e000503${rHex}${gHex}${bHex}00ef`);
     }
 
-    connectBtn.onclick = connect;
-    document.getElementById('cmd1').onclick = () => sendHex(HEX_1);
-    document.getElementById('cmd2').onclick = () => sendHex(HEX_2);
+    $('colorPicker').oninput = updateRGB;
 
+    $('brightness').oninput = function() {
+        $('brightnessVal').textContent = this.value;
+        const val = parseInt(this.value).toString(16).padStart(2, '0');
+        send(`7e0001${val}00000000ef`);
+    };
+
+    // Grayscale Mode
+    $('grayscale').oninput = function() {
+        $('grayscaleVal').textContent = this.value;
+        updateGrayscale();
+    };
+
+    function updateGrayscale() {
+        const val = parseInt($('grayscale').value).toString(16).padStart(2, '0');
+        send(`7e000501${val}000000ef`);
+    }
+
+    // Temperature Mode
+    $('temperature').oninput = function() {
+        const val = parseInt(this.value).toString(16).padStart(2, '0');
+        send(`7e0003${val}02000000ef`);
+    };
+
+    $('tempBrightness').oninput = function() {
+        $('tempBrightnessVal').textContent = this.value;
+        const val = parseInt(this.value).toString(16).padStart(2, '0');
+        send(`7e0001${val}00000000ef`);
+    };
+
+    // Effects
+    document.querySelectorAll('.effect-btn').forEach(btn => {
+        btn.onclick = () => {
+            const effect = btn.dataset.effect;
+            const effectHex = parseInt(effect).toString(16).padStart(2, '0');
+            send(`7e0003${effectHex}03000000ef`);
+        };
+    });
+
+    $('speed').oninput = function() {
+        $('speedVal').textContent = this.value;
+        const val = parseInt(this.value).toString(16).padStart(2, '0');
+        send(`7e0002${val}00000000ef`);
+    };
+
+    // Активируем RGB по умолчанию
+    document.querySelector('.mode-btn[data-mode="rgb"]').click();
 </script>
+
 </body>
 </html>
