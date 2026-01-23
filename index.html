@@ -202,10 +202,9 @@
         try {
             log("Поиск устройства ELK-BLEDOB...");
             
-            // Минимальный фильтр для Bluefy - только namePrefix
+            // Только namePrefix, БЕЗ optionalServices - иначе устройство не видно
             device = await navigator.bluetooth.requestDevice({
-                filters: [{ namePrefix: 'ELK' }],
-                optionalServices: [SERVICE_UUID]
+                filters: [{ namePrefix: 'ELK' }]
             });
 
             log(`Подключаюсь к "${device.name || 'Безымянное устройство'}"...`);
