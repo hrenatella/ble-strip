@@ -276,7 +276,8 @@
         try {
             log("Searching for Block Lamp...");
             device = await navigator.bluetooth.requestDevice({
-                filters: [{ namePrefix: 'ELK' }]
+                filters: [{ namePrefix: 'ELK' }],
+                optionalServices: [SERVICE_UUID]
             });
 
             log(`Connecting to "${device.name}"...`);
