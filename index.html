@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -103,6 +103,14 @@
 
         .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
 
+        .btn-disconnect {
+            background: var(--error);
+            color: white;
+            margin-top: 8px;
+        }
+
+        .btn-disconnect:active { transform: scale(0.98); opacity: 0.9; }
+
         .btn-power {
             background: var(--card-hover);
             color: var(--text);
@@ -115,31 +123,6 @@
         }
 
         .btn-power:active { transform: scale(0.98); }
-
-        .mode-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-
-        .mode-btn {
-            padding: 14px;
-            background: var(--card-hover);
-            border: 2px solid transparent;
-            border-radius: 10px;
-            color: var(--text-dim);
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-
-        .mode-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        .mode-btn:active { transform: scale(0.96); }
 
         .slider-container {
             margin-bottom: 20px;
@@ -196,28 +179,6 @@
             margin-bottom: 16px;
         }
 
-        .effects-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-        }
-
-        .effect-btn {
-            padding: 12px 8px;
-            background: var(--card-hover);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            color: var(--text-dim);
-            font-size: 12px;
-            transition: all 0.2s;
-        }
-
-        .effect-btn:active {
-            transform: scale(0.95);
-            background: var(--primary);
-            color: white;
-        }
-
         .hidden { display: none; }
 
         #log {
@@ -247,115 +208,45 @@
 
 <div class="container">
     <div class="header">
-        <h1>RGB LED Controller</h1>
+        <h1>Block Lamp Controller</h1>
         <div class="status">
             <div id="statusDot" class="dot"></div>
-            <span id="statusText">Не подключено</span>
+            <span id="statusText">Not connected</span>
         </div>
     </div>
 
     <div id="bleWarning" class="warning hidden">
-        ⚠️ Bluetooth недоступен. Используйте Bluefy на iOS с HTTPS.
+        ⚠️ Bluetooth unavailable. Use Bluefy browser on iOS with HTTPS.
     </div>
 
     <div class="card">
-        <button id="connectBtn" class="btn-primary">Подключиться к ELK-BLEDOB</button>
-        <button id="disconnectBtn" class="btn-primary hidden" style="background: var(--error); margin-top: 8px;">Отключиться</button>
+        <button id="connectBtn" class="btn-primary">Connect to Block Lamp</button>
+        <button id="disconnectBtn" class="btn-disconnect hidden">Disconnect</button>
     </div>
 
     <div id="controls" class="hidden">
         <!-- Power -->
         <div class="card">
-            <button id="powerBtn" class="btn-power">Включить</button>
-        </div>
-
-        <!-- Modes -->
-        <div class="card">
-            <div class="card-title">Режимы</div>
-            <div class="mode-grid">
-                <button class="mode-btn" data-mode="rgb">RGB</button>
-                <button class="mode-btn" data-mode="grayscale">Белый</button>
-                <button class="mode-btn" data-mode="temperature">Температура</button>
-                <button class="mode-btn" data-mode="effect">Эффекты</button>
-            </div>
+            <button id="powerBtn" class="btn-power">Turn On</button>
         </div>
 
         <!-- RGB Mode -->
-        <div id="rgbMode" class="card hidden">
-            <div class="card-title">RGB Цвет</div>
+        <div class="card">
+            <div class="card-title">RGB Color</div>
             <input type="color" id="colorPicker" class="color-input" value="#ff0000">
             <div class="slider-container">
                 <div class="slider-label">
-                    <span>Яркость</span>
+                    <span>Brightness</span>
                     <span class="slider-value"><span id="brightnessVal">100</span>%</span>
                 </div>
                 <input type="range" id="brightness" min="0" max="100" value="100">
             </div>
         </div>
-
-        <!-- Grayscale Mode -->
-        <div id="grayscaleMode" class="card hidden">
-            <div class="card-title">Белый свет</div>
-            <div class="slider-container">
-                <div class="slider-label">
-                    <span>Интенсивность</span>
-                    <span class="slider-value"><span id="grayscaleVal">100</span>%</span>
-                </div>
-                <input type="range" id="grayscale" min="0" max="100" value="100">
-            </div>
-        </div>
-
-        <!-- Temperature Mode -->
-        <div id="temperatureMode" class="card hidden">
-            <div class="card-title">Температура света</div>
-            <div class="slider-container">
-                <div class="slider-label">
-                    <span>Холодный</span>
-                    <span>Тёплый</span>
-                </div>
-                <input type="range" id="temperature" min="128" max="138" value="133">
-            </div>
-            <div class="slider-container">
-                <div class="slider-label">
-                    <span>Яркость</span>
-                    <span class="slider-value"><span id="tempBrightnessVal">100</span>%</span>
-                </div>
-                <input type="range" id="tempBrightness" min="0" max="100" value="100">
-            </div>
-        </div>
-
-        <!-- Effect Mode -->
-        <div id="effectMode" class="card hidden">
-            <div class="card-title">Эффекты</div>
-            <div class="effects-grid">
-                <button class="effect-btn" data-effect="fire" style="background: linear-gradient(135deg, #ff4500, #ffa500); color: white; font-weight: bold;">🔥 Огонь</button>
-                <button class="effect-btn" data-effect="0x96">Blink Red</button>
-                <button class="effect-btn" data-effect="0x87">Jump RGB</button>
-                <button class="effect-btn" data-effect="0x88">Jump All</button>
-                <button class="effect-btn" data-effect="0x89">Gradient RGB</button>
-                <button class="effect-btn" data-effect="0x8a">Gradient All</button>
-                <button class="effect-btn" data-effect="0x95">Blink All</button>
-                <button class="effect-btn" data-effect="0x80">Red</button>
-                <button class="effect-btn" data-effect="0x81">Green</button>
-                <button class="effect-btn" data-effect="0x82">Blue</button>
-                <button class="effect-btn" data-effect="0x83">Yellow</button>
-                <button class="effect-btn" data-effect="0x84">Cyan</button>
-                <button class="effect-btn" data-effect="0x85">Magenta</button>
-                <button class="effect-btn" data-effect="0x86">White</button>
-            </div>
-            <div class="slider-container" style="margin-top: 16px;">
-                <div class="slider-label">
-                    <span>Скорость</span>
-                    <span class="slider-value"><span id="speedVal">50</span>%</span>
-                </div>
-                <input type="range" id="speed" min="0" max="100" value="50">
-            </div>
-        </div>
     </div>
 
     <div class="card">
-        <div class="card-title">Лог</div>
-        <div id="log">Ожидание подключения...</div>
+        <div class="card-title">Log</div>
+        <div id="log">Waiting for connection...</div>
     </div>
 </div>
 
@@ -367,30 +258,28 @@
     let device = null;
     let characteristic = null;
     let isPowerOn = false;
-    let currentMode = 'rgb';
-    let fireInterval = null;
 
     const $ = id => document.getElementById(id);
     const log = msg => {
-        const time = new Date().toLocaleTimeString('ru-RU');
+        const time = new Date().toLocaleTimeString('en-US');
         $('log').innerHTML += `[${time}] ${msg}<br>`;
         $('log').scrollTop = $('log').scrollHeight;
     };
 
     if (!navigator.bluetooth) {
         $('bleWarning').classList.remove('hidden');
-        log("⚠️ Bluetooth API недоступен");
+        log("⚠️ Bluetooth API unavailable");
     }
 
-    // Подключение
+    // Connect
     $('connectBtn').onclick = async () => {
         try {
-            log("Поиск ELK-BLEDOB...");
+            log("Searching for Block Lamp...");
             device = await navigator.bluetooth.requestDevice({
                 filters: [{ namePrefix: 'ELK' }]
             });
 
-            log(`Подключение к "${device.name}"...`);
+            log(`Connecting to "${device.name}"...`);
             device.addEventListener('gattserverdisconnected', onDisconnect);
 
             const server = await device.gatt.connect();
@@ -403,26 +292,21 @@
             }
 
             $('statusDot').classList.add('connected');
-            $('statusText').innerText = `Подключено: ${device.name}`;
+            $('statusText').innerText = `Connected: ${device.name}`;
             $('connectBtn').classList.add('hidden');
             $('disconnectBtn').classList.remove('hidden');
             $('controls').classList.remove('hidden');
-            log("✓ Готово к управлению");
+            log("✓ Ready to control");
 
         } catch (err) {
-            log(`✗ Ошибка: ${err.message}`);
+            log(`✗ Error: ${err.message}`);
         }
     };
 
     function onDisconnect() {
-        if (fireInterval) {
-            clearInterval(fireInterval);
-            fireInterval = null;
-        }
-        
-        log("✗ Устройство отключено");
+        log("✗ Device disconnected");
         $('statusDot').classList.remove('connected');
-        $('statusText').innerText = 'Не подключено';
+        $('statusText').innerText = 'Not connected';
         $('controls').classList.add('hidden');
         $('connectBtn').classList.remove('hidden');
         $('disconnectBtn').classList.add('hidden');
@@ -431,17 +315,17 @@
         characteristic = null;
     }
 
-    // Кнопка отключения
+    // Disconnect button
     $('disconnectBtn').onclick = () => {
         if (device && device.gatt.connected) {
-            log("Отключение от устройства...");
+            log("Disconnecting from device...");
             device.gatt.disconnect();
         }
     };
 
-    // Отправка команды
+    // Send command
     async function send(hex) {
-        if (!characteristic) return log("✗ Нет соединения");
+        if (!characteristic) return log("✗ No connection");
         try {
             const bytes = new Uint8Array(hex.match(/.{2}/g).map(b => parseInt(b, 16)));
             await characteristic.writeValue(bytes);
@@ -455,38 +339,9 @@
     $('powerBtn').onclick = () => {
         isPowerOn = !isPowerOn;
         send(isPowerOn ? '7e00040100000000ef' : '7e00040000000000ef');
-        $('powerBtn').textContent = isPowerOn ? 'Выключить' : 'Включить';
+        $('powerBtn').textContent = isPowerOn ? 'Turn Off' : 'Turn On';
         $('powerBtn').classList.toggle('on', isPowerOn);
     };
-
-    // Режимы
-    document.querySelectorAll('.mode-btn').forEach(btn => {
-        btn.onclick = () => {
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            const mode = btn.dataset.mode;
-            currentMode = mode;
-
-            ['rgbMode', 'grayscaleMode', 'temperatureMode', 'effectMode'].forEach(id => {
-                $(id).classList.add('hidden');
-            });
-
-            if (mode === 'rgb') {
-                $('rgbMode').classList.remove('hidden');
-                updateRGB();
-            } else if (mode === 'grayscale') {
-                $('grayscaleMode').classList.remove('hidden');
-                send('7e00030001000000ef');
-                updateGrayscale();
-            } else if (mode === 'temperature') {
-                $('temperatureMode').classList.remove('hidden');
-                updateTemperature();
-            } else if (mode === 'effect') {
-                $('effectMode').classList.remove('hidden');
-            }
-        };
-    });
 
     // RGB Mode
     function updateRGB() {
@@ -509,82 +364,6 @@
         const val = parseInt(this.value).toString(16).padStart(2, '0');
         send(`7e0001${val}00000000ef`);
     };
-
-    // Grayscale Mode
-    $('grayscale').oninput = function() {
-        $('grayscaleVal').textContent = this.value;
-        updateGrayscale();
-    };
-
-    function updateGrayscale() {
-        const val = parseInt($('grayscale').value).toString(16).padStart(2, '0');
-        send(`7e000501${val}000000ef`);
-    }
-
-    // Temperature Mode
-    $('temperature').oninput = function() {
-        const val = parseInt(this.value).toString(16).padStart(2, '0');
-        send(`7e0003${val}02000000ef`);
-    };
-
-    $('tempBrightness').oninput = function() {
-        $('tempBrightnessVal').textContent = this.value;
-        const val = parseInt(this.value).toString(16).padStart(2, '0');
-        send(`7e0001${val}00000000ef`);
-    };
-
-    // Effects
-    document.querySelectorAll('.effect-btn').forEach(btn => {
-        btn.onclick = () => {
-            const effect = btn.dataset.effect;
-            
-            // Остановить кастомный эффект огня, если он был запущен
-            if (fireInterval) {
-                clearInterval(fireInterval);
-                fireInterval = null;
-            }
-            
-            if (effect === 'fire') {
-                // Кастомный эффект огня
-                log("🔥 Запущен эффект огня");
-                
-                const fireColors = [
-                    { r: 255, g: 40, b: 0 },   // Красный
-                    { r: 255, g: 80, b: 0 },   // Красно-оранжевый
-                    { r: 255, g: 120, b: 0 },  // Оранжевый
-                    { r: 255, g: 160, b: 0 },  // Жёлто-оранжевый
-                    { r: 255, g: 200, b: 0 },  // Жёлтый
-                ];
-                
-                fireInterval = setInterval(() => {
-                    // Случайный цвет из палитры
-                    const color = fireColors[Math.floor(Math.random() * fireColors.length)];
-                    // Случайная яркость (80-100%)
-                    const brightness = Math.floor(Math.random() * 21) + 80;
-                    
-                    const rHex = Math.floor(color.r * brightness / 100).toString(16).padStart(2, '0');
-                    const gHex = Math.floor(color.g * brightness / 100).toString(16).padStart(2, '0');
-                    const bHex = Math.floor(color.b * brightness / 100).toString(16).padStart(2, '0');
-                    
-                    send(`7e000503${rHex}${gHex}${bHex}00ef`);
-                }, 100 + Math.random() * 100); // Случайная задержка 100-200ms
-                
-            } else {
-                // Стандартный эффект
-                const effectHex = parseInt(effect).toString(16).padStart(2, '0');
-                send(`7e0003${effectHex}03000000ef`);
-            }
-        };
-    });
-
-    $('speed').oninput = function() {
-        $('speedVal').textContent = this.value;
-        const val = parseInt(this.value).toString(16).padStart(2, '0');
-        send(`7e0002${val}00000000ef`);
-    };
-
-    // Активируем RGB по умолчанию
-    document.querySelector('.mode-btn[data-mode="rgb"]').click();
 </script>
 
 </body>
