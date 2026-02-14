@@ -275,10 +275,17 @@
     $('connectBtn').onclick = async () => {
         try {
             log("Searching for Block Lamp...");
-            device = await navigator.bluetooth.requestDevice({
-                filters: [{ namePrefix: 'ELK' }],
-                optionalServices: [SERVICE_UUID]
-            });
+            try {
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: 'ELK' }],
+                    optionalServices: [SERVICE_UUID]
+                });
+            } catch (err) {
+                // Если не сработало (iOS), пробуем без optionalServices
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ namePrefix: 'ELK' }]
+                });
+            }
 
             log(`Connecting to "${device.name}"...`);
             device.addEventListener('gattserverdisconnected', onDisconnect);
